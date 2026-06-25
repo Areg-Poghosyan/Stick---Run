@@ -254,7 +254,7 @@ const SPIKES2 = [
   {wx: 2409, y: 240, w: 20},  // platform x=2380
   {wx: 3089, y: 190, w: 20},  // platform x=3060
 ];
-const SPIKES3 = [ {wx: 882, y: 280, w: 20}, {wx: 1422, y: 160, w: 20}, {wx: 2272, y: 180, w: 20}, {wx: 2722, y: 80, w: 20}, {wx: 3172, y: 60, w: 20}, ];
+const SPIKES3 = [ {wx: 882, y: 280, w: 20}, {wx: 1422, y: 160, w: 20}, {wx: 2292, y: 180, w: 20}, {wx: 2742, y: 80, w: 20}, {wx: 3192, y: 60, w: 20}, ];
 let spikes = SPIKES1;
 
 // Wind zones: force = horizontal push (>0 right), forceY = vertical push (<0 up)
@@ -370,8 +370,8 @@ function resetGame() {
   gameOver = false;
   lives = 3;
   coins.forEach(c => c.collected = false);
-  checkpoint.wx = currentLevel === 2 ? 1819 : 1755;
-  checkpoint.platY = currentLevel === 2 ? 230 : 430;
+  checkpoint.wx = currentLevel === 3 ? 2012 : currentLevel === 2 ? 1819 : 1755;
+  checkpoint.platY = currentLevel === 3 ? 380 : currentLevel === 2 ? 230 : 430;
   checkpoint.activated = false; spawnX = 55; spawnY = plats[0].y - PH;
   paused = false;
   score = 0; streak = 0; timerFrames = 0; timerLimit = currentLevel === 2 ? 70 : 90; dust = []; dialogueIndex = 0; talkingToNpc = false;

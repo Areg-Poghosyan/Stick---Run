@@ -41,7 +41,8 @@ const ctx = canvas.getContext('2d');
 canvas.focus();
 
 // ── Audio ──────────────────────────────────────────────────────────────────
-let audioCtx = null, muted = false, bgGain = null, bgTimer = null, bgStep = 0, wasInAir = false, shake = 0;
+let audioCtx = null, muted = false, bgGain = null, bgTimer = null, bgStep = 0, bgLevelOverride = 0, wasInAir = false, shake = 0;
+let endingBgTimer = null, endingBgStep = 0;
 
 function initAudio() {
   if (audioCtx) return;
@@ -122,7 +123,8 @@ const MINOR = [
 function scheduleBg() {
   if (muted || !audioCtx) return;
   const beat  = bgStep % 4;
-  if (currentLevel === 2) {
+  const lv = bgLevelOverride || currentLevel;
+  if (lv === 2) {
     const chord = MINOR[Math.floor(bgStep / 4) % MINOR.length];
     // Pulsing bass (sawtooth, darker tone)
     const ob = audioCtx.createOscillator(), gb = audioCtx.createGain();
@@ -143,6 +145,38 @@ function scheduleBg() {
     bgStep++;
     // Driving even rhythm, slightly faster than level 1
     bgTimer = setTimeout(scheduleBg, 260);
+  } else if (lv === 3) {
+    // Deep drone pattern with rhythmic pulse on beat 0
+    const DRONE = [N.A3, N.Ab3, N.G3, N.Ab3, N.A3, N.A3, N.Bb3, N.A3];
+    const GHOST = [N.Eb5, N.D5, N.Ab5, null, N.G5, null, N.Eb5, null];
+    const idx = bgStep % DRONE.length;
+    // Deep drone (sine, long decay, louder)
+    const od = audioCtx.createOscillator(), gd = audioCtx.createGain();
+    od.type = 'sine'; od.frequency.value = DRONE[idx];
+    od.connect(gd); gd.connect(bgGain);
+    gd.gain.setValueAtTime(0.75, audioCtx.currentTime);
+    gd.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.75);
+    od.start(); od.stop(audioCtx.currentTime + 0.8);
+    // Rhythmic low pulse on every other step (sawtooth thud)
+    if (idx % 2 === 0) {
+      const op = audioCtx.createOscillator(), gp = audioCtx.createGain();
+      op.type = 'sawtooth'; op.frequency.value = DRONE[idx] / 2;
+      op.connect(gp); gp.connect(bgGain);
+      gp.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      gp.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
+      op.start(); op.stop(audioCtx.currentTime + 0.3);
+    }
+    // Occasional high ghost note (sine, soft but present)
+    if (GHOST[idx]) {
+      const oh = audioCtx.createOscillator(), gh = audioCtx.createGain();
+      oh.type = 'sine'; oh.frequency.value = GHOST[idx];
+      oh.connect(gh); gh.connect(bgGain);
+      gh.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gh.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+      oh.start(); oh.stop(audioCtx.currentTime + 0.65);
+    }
+    bgStep++;
+    bgTimer = setTimeout(scheduleBg, 550);
   } else {
     const chord = JAZZ[Math.floor(bgStep / 4) % JAZZ.length];
     // Walking bass (triangle, warm low tone)
@@ -170,6 +204,24 @@ function scheduleBg() {
 }
 function stopBg() { clearTimeout(bgTimer); bgTimer = null; }
 function startBg() { if (!bgTimer && !muted && audioCtx) scheduleBg(); }
+
+// Soft piano-like ending music — ethereal, emotional, not spooky
+const ENDING_NOTES = [N.C5, N.E5, N.G4, N.A4, N.B4, N.G4, N.E4, N.D4, N.C5, N.A4, N.B4, N.E5];
+function scheduleEndingBg() {
+  if (muted || !audioCtx) return;
+  const f = ENDING_NOTES[endingBgStep % ENDING_NOTES.length];
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'sine'; o.frequency.value = f;
+  o.connect(g); g.connect(bgGain);
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  g.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.08);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.4);
+  o.start(); o.stop(audioCtx.currentTime + 2.5);
+  endingBgStep++;
+  endingBgTimer = setTimeout(scheduleEndingBg, 1700);
+}
+function startEndingBg() { endingBgStep = 0; if (!endingBgTimer && !muted && audioCtx) scheduleEndingBg(); }
+function stopEndingBg() { clearTimeout(endingBgTimer); endingBgTimer = null; }
 
 function toggleMute() {
   muted = !muted;
@@ -416,8 +468,8 @@ window.addEventListener('keydown', e => {
   // DEV CHEAT — remove before release
   if (e.key === 'g' && e.ctrlKey) { godMode = !godMode; }
   if (e.key === '`' && !showMenu && !won && !gameOver && !showEnding) {
-    if (currentLevel === 3) { showEnding = true; endingStart = Date.now(); endingPhase = 'lines'; stopBg(); playWin(); }
-    else { won = true; stopBg(); playWin(); }
+    if (currentLevel === 3) { showEnding = true; endingStart = Date.now(); endingPhase = 'lines'; stopBg(); playWin(); startEndingBg(); }
+    else { won = true; stopBg(); playWin(); if (currentLevel === 2) { bgLevelOverride = 3; startBg(); } }
   }
   if ((e.key === 'p' || e.key === 'P') && !won && !gameOver) {
     paused = !paused;
@@ -472,8 +524,8 @@ canvas.addEventListener('click', e => {
     return;
   }
   if (showEnding && endingPhase === 'buttons') {
-    if (hit(mx, my, W/2 - 140, 390, 200, 50)) { showEnding = false; currentLevel = 1; resetGame(); startBg(); }
-    if (hit(mx, my, W/2 + 140, 390, 180, 50)) { endingPhase = 'walkaway'; endingFadeStart = Date.now(); }
+    if (hit(mx, my, W/2 - 140, 390, 200, 50)) { stopEndingBg(); showEnding = false; currentLevel = 1; resetGame(); startBg(); }
+    if (hit(mx, my, W/2 + 140, 390, 180, 50)) { endingPhase = 'walkaway'; endingFadeStart = Date.now(); stopBg(); }
     return;
   }
   if (showMenu) {
@@ -507,7 +559,7 @@ function update() {
   if (won || gameOver) {
     if (keys['r'] || keys['R']) resetGame();
     if (won && (keys['k'] || keys['K'])) {
-      if (currentLevel === 2) { won = false; currentLevel = 3; resetGame(); }
+      if (currentLevel === 2) { bgLevelOverride = 0; won = false; currentLevel = 3; resetGame(); }
       else { won = false; showInterlude = true; interludeStart = Date.now(); currentLevel = 2; startBg(); }
     }
     return;
@@ -586,7 +638,7 @@ function update() {
         }
       }
       if (p.type === 3) {
-        if (coins.every(c => c.collected)) { score += Math.max(0, 5000 - Math.floor(timerFrames/60)*50); if (currentLevel === 3) { showEnding = true; endingStart = Date.now(); endingPhase = 'lines'; stopBg(); playWin(); } else { won = true; stopBg(); playWin(); } return; }
+        if (coins.every(c => c.collected)) { score += Math.max(0, 5000 - Math.floor(timerFrames/60)*50); if (currentLevel === 3) { showEnding = true; endingStart = Date.now(); endingPhase = 'lines'; stopBg(); playWin(); startEndingBg(); } else { won = true; stopBg(); playWin(); if (currentLevel === 2) { bgLevelOverride = 3; startBg(); } } return; }
         else { needAllCoins = 120; }
       }
     }
@@ -1604,6 +1656,7 @@ function drawEnding() {
     ctx.fillStyle = `rgba(0,0,0,${t})`; ctx.fillRect(0, 0, W, H);
     if (t < 1) return;
     const after = now - endingFadeStart - 1800;
+    if (after >= 5000) stopEndingBg();
     ctx.textAlign = 'center'; ctx.shadowColor = '#000'; ctx.shadowBlur = 10;
     // "THE END" fades in after 5s
     const endAlpha = Math.min(1, Math.max(0, (after - 5000) / 800));

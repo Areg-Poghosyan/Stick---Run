@@ -272,7 +272,7 @@ const PLATS2 = [
   [3380, 80, 220, 3],
 ].map(([x, y, w, type]) => ({ x, y, w, h: 16, type }));
 const PLATS3 = [
-  [0,    420, 120, 0],
+  [0,    420, 200, 0],
 
   [150,  360, 45, 1], [290,  280, 45, 1], [430,  200, 45, 1],
   [570,  120, 45, 1], [710,  200, 45, 1], [831.5, 280, 82, 1],
@@ -280,7 +280,7 @@ const PLATS3 = [
 
   [1100, 340, 45, 1], [1250, 250, 45, 1], [1381.5, 160, 82, 1],
   [1550, 80,  45, 1], [1700, 160, 45, 1], [1850, 260, 45, 1],
-  [1990, 380, 60, 0],
+  [1990, 380, 120, 0],
 
   [2120, 280, 45, 1], [2251.5, 180, 82, 1], [2420, 90,  45, 1],
   [2570, 160, 45, 1], [2701.5, 80, 82, 1], [2870, 160, 45, 1],
@@ -347,7 +347,7 @@ const WINDZONES2 = [
   {wx: 2510, y: 80,  w: 120, h: 370, force: -5.5},  // left push, section 4 peak (x=2560, y=100)
   {wx: 2840, y: 75,  w: 140, h: 385, force: 0, forceY: -2.75}, // upward, to reach peak platforms y=70
 ];
-const WINDZONES3 = [ {wx: 990, y: 200, w: 120, h: 230, force: -5.5}, {wx: 1990, y: 150, w: 120, h: 240, force: 5.0}, {wx: 2800, y: 80, w: 130, h: 350, force: -5.5}, ];
+const WINDZONES3 = [ {wx: 990, y: 200, w: 120, h: 230, force: -5.5}, {wx: 2800, y: 80, w: 130, h: 350, force: -5.5}, ];
 let windZones = WINDZONES1;
 
 // Moving platforms
@@ -417,7 +417,7 @@ const DIALOGUE = [
   "Every 5 coins in a row scores 300 instead of 100!",
   "Good luck out there. You'll need it. Press E to close.",
 ];
-const NPC3A_X = 60, NPC3A_Y = 404 - PH;
+const NPC3A_X = 120, NPC3A_Y = 420 - PH;
 const DIALOGUE3A = [
   "You weren't supposed to make it here.",
   "No one ever does.",
@@ -426,7 +426,7 @@ const DIALOGUE3A = [
   "He's always been expecting you.",
   "Press E to close.",
 ];
-const NPC3B_X = 2010, NPC3B_Y = 364 - PH;
+const NPC3B_X = 2050, NPC3B_Y = 364 - PH;
 const DIALOGUE3B = [
   "I've been here a long time.",
   "Longer than I can remember.",
@@ -1342,7 +1342,7 @@ function drawNpc2() {
   ctx.restore();
 }
 
-function drawNpc3(npcX, npcY, headColor, dialogue, isActive) {
+function drawNpc3(npcX, npcY, headColor, eyeColor, dialogue, isActive, hat) {
   const nx = npcX - cam.x;
   const ny = npcY + PH - 4;
   const near = Math.abs((player.x + PW/2) - npcX) < 80;
@@ -1378,8 +1378,16 @@ function drawNpc3(npcX, npcY, headColor, dialogue, isActive) {
   ctx.beginPath(); ctx.moveTo(3,-40);  ctx.lineTo(16,-28); ctx.stroke();
   ctx.fillStyle = headColor; ctx.strokeStyle = '#2a0040'; ctx.lineWidth = 2.2;
   ctx.beginPath(); ctx.arc(0,-56,11,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#2a0040';
+  ctx.fillStyle = eyeColor;
   ctx.beginPath(); ctx.arc(-3.8,-57.5,1.6,0,Math.PI*2); ctx.arc(3.8,-57.5,1.6,0,Math.PI*2); ctx.fill();
+  if (hat) {
+    // Dark triangular hat (brim + cone)
+    ctx.fillStyle = '#1a1a1a'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+    // Brim
+    ctx.beginPath(); ctx.ellipse(0, -66, 14, 3.5, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    // Cone
+    ctx.beginPath(); ctx.moveTo(-10, -66); ctx.lineTo(0, -90); ctx.lineTo(10, -66); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -1876,7 +1884,7 @@ function loop() {
   drawBirds();
   if (currentLevel === 1) drawNpc();
   else if (currentLevel === 2) drawNpc2();
-  else if (currentLevel === 3) { drawNpc3(NPC3A_X, NPC3A_Y, '#3b006b', DIALOGUE3A, activeNpc3 === 'A'); drawNpc3(NPC3B_X, NPC3B_Y, '#888888', DIALOGUE3B, activeNpc3 === 'B'); }
+  else if (currentLevel === 3) { drawNpc3(NPC3A_X, NPC3A_Y, '#444444', '#ffffff', DIALOGUE3A, activeNpc3 === 'A', false); drawNpc3(NPC3B_X, NPC3B_Y, '#888888', '#2a0040', DIALOGUE3B, activeNpc3 === 'B', true); }
   drawDust();
   drawFigure();
   drawHUD();

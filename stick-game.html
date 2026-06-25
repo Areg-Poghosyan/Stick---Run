@@ -291,6 +291,7 @@ const SPRINGS2 = [
   {wx: 1029, y: 180},  // platform x=1000, y=180
   {wx: 2229, y: 100},  // platform x=2200, y=100
 ];
+const SPRINGS3 = [ {wx: 1012, y: 420}, {wx: 2007, y: 380}, {wx: 3500, y: 60}, ];
 let springs = SPRINGS1;
 
 const clouds = Array.from({ length: 20 }, (_, i) => ({
@@ -360,7 +361,7 @@ function resetGame() {
   spikes       = currentLevel === 2 ? SPIKES2      : SPIKES1;
   movingPlats  = currentLevel === 2 ? MOVINGPLATS2 : MOVINGPLATS1;
   windZones= currentLevel === 2 ? WINDZONES2 : WINDZONES1;
-  springs  = currentLevel === 2 ? SPRINGS2   : SPRINGS1;
+  springs  = currentLevel === 3 ? SPRINGS3 : currentLevel === 2 ? SPRINGS2 : SPRINGS1;
   coins = plats.filter(p => p.type === 1).map(p => ({ wx: p.x + p.w / 2, y: p.y - 28, collected: false }));
   resetPlayer();
   frameCount = 0;

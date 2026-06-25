@@ -270,6 +270,7 @@ const WINDZONES2 = [
   {wx: 2510, y: 80,  w: 120, h: 370, force: -5.5},  // left push, section 4 peak (x=2560, y=100)
   {wx: 2840, y: 75,  w: 140, h: 385, force: 0, forceY: -2.75}, // upward, to reach peak platforms y=70
 ];
+const WINDZONES3 = [ {wx: 990, y: 200, w: 120, h: 230, force: -5.5}, {wx: 1990, y: 150, w: 120, h: 240, force: 5.0}, {wx: 2800, y: 80, w: 130, h: 350, force: -5.5}, ];
 let windZones = WINDZONES1;
 
 // Moving platforms
@@ -362,7 +363,7 @@ function resetGame() {
   birds    = (currentLevel === 3 ? BIRD_DEFS3 : currentLevel === 2 ? BIRD_DEFS2 : BIRD_DEFS).map(([wx, y, spd, range]) => ({ wx, startWx: wx, y, spd, dir: 1, range }));
   spikes       = currentLevel === 3 ? SPIKES3 : currentLevel === 2 ? SPIKES2 : SPIKES1;
   movingPlats  = currentLevel === 3 ? MOVINGPLATS3 : currentLevel === 2 ? MOVINGPLATS2 : MOVINGPLATS1;
-  windZones= currentLevel === 2 ? WINDZONES2 : WINDZONES1;
+  windZones= currentLevel === 3 ? WINDZONES3 : currentLevel === 2 ? WINDZONES2 : WINDZONES1;
   springs  = currentLevel === 3 ? SPRINGS3 : currentLevel === 2 ? SPRINGS2 : SPRINGS1;
   coins = plats.filter(p => p.type === 1 && !spikes.some(s => s.y === p.y && Math.abs(p.x + p.w / 2 - s.wx) <= s.w / 2)).map(p => ({ wx: p.x + p.w / 2, y: p.y - 28, collected: false }));
   resetPlayer();

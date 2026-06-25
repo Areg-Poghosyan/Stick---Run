@@ -102,44 +102,71 @@ function playTimerTick() {
 }
 
 // Jazz ii-V-I-VI in C — walking bass + chord stabs on 2 & 4
-const N = { C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196,A3:220,B3:246.94,
-             C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,Bb4:466.16,B4:493.88,
-             C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:784 };
+const N = { C3:130.81,D3:146.83,Eb3:155.56,E3:164.81,F3:174.61,G3:196,Ab3:207.65,A3:220,Bb3:233.08,B3:246.94,
+             C4:261.63,D4:293.66,Eb4:311.13,E4:329.63,F4:349.23,G4:392,Ab4:415.30,A4:440,Bb4:466.16,B4:493.88,
+             C5:523.25,D5:587.33,Eb5:622.25,E5:659.25,F5:698.46,G5:784,Ab5:830.61 };
 const JAZZ = [
   { bass:[N.D3,N.F3,N.A3,N.C4], stab:[N.F4,N.A4,N.C5]    },  // Dm7
   { bass:[N.G3,N.B3,N.D4,N.F4], stab:[N.B4,N.D5,N.F5]    },  // G7
   { bass:[N.C3,N.E3,N.G3,N.B3], stab:[N.E4,N.G4,N.B4]    },  // Cmaj7
   { bass:[N.A3,N.C4,N.E4,N.G4], stab:[N.C5,N.E5,N.G5]    },  // Am7
 ];
+// Level 2: dark minor — Am-F-C-E (Aeolian / harmonic minor feel)
+const MINOR = [
+  { bass:[N.A3,N.C4,N.E4,N.G4],  stab:[N.C5,N.E5,N.G5]    },  // Am7
+  { bass:[N.F3,N.A3,N.C4,N.Eb4], stab:[N.A4,N.C5,N.Eb5]   },  // Fm7
+  { bass:[N.C3,N.Eb3,N.G3,N.Bb3],stab:[N.Eb4,N.G4,N.Bb4]  },  // Cm7
+  { bass:[N.E3,N.G3,N.B3,N.D4],  stab:[N.G4,N.B4,N.D5]    },  // Em7 (leading tone tension)
+];
 
 function scheduleBg() {
   if (muted || !audioCtx) return;
   const beat  = bgStep % 4;
-  const chord = JAZZ[Math.floor(bgStep / 4) % JAZZ.length];
-
-  // Walking bass (triangle, warm low tone)
-  const ob = audioCtx.createOscillator(), gb = audioCtx.createGain();
-  ob.type = 'triangle'; ob.frequency.value = chord.bass[beat];
-  ob.connect(gb); gb.connect(bgGain);
-  gb.gain.setValueAtTime(0.9, audioCtx.currentTime);
-  gb.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.38);
-  ob.start(); ob.stop(audioCtx.currentTime + 0.4);
-
-  // Chord stab on beats 2 & 4 (classic jazz backbeat)
-  if (beat === 1 || beat === 3) {
+  if (currentLevel === 2) {
+    const chord = MINOR[Math.floor(bgStep / 4) % MINOR.length];
+    // Pulsing bass (sawtooth, darker tone)
+    const ob = audioCtx.createOscillator(), gb = audioCtx.createGain();
+    ob.type = 'sawtooth'; ob.frequency.value = chord.bass[beat];
+    ob.connect(gb); gb.connect(bgGain);
+    gb.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gb.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.32);
+    ob.start(); ob.stop(audioCtx.currentTime + 0.35);
+    // Tense stab on every beat (not just 2 & 4) for urgency
     chord.stab.forEach(f => {
       const os = audioCtx.createOscillator(), gs = audioCtx.createGain();
-      os.type = 'sine'; os.frequency.value = f;
+      os.type = 'triangle'; os.frequency.value = f;
       os.connect(gs); gs.connect(bgGain);
-      gs.gain.setValueAtTime(0.18, audioCtx.currentTime);
-      gs.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
-      os.start(); os.stop(audioCtx.currentTime + 0.25);
+      gs.gain.setValueAtTime(beat === 0 ? 0.14 : 0.08, audioCtx.currentTime);
+      gs.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+      os.start(); os.stop(audioCtx.currentTime + 0.2);
     });
+    bgStep++;
+    // Driving even rhythm, slightly faster than level 1
+    bgTimer = setTimeout(scheduleBg, 260);
+  } else {
+    const chord = JAZZ[Math.floor(bgStep / 4) % JAZZ.length];
+    // Walking bass (triangle, warm low tone)
+    const ob = audioCtx.createOscillator(), gb = audioCtx.createGain();
+    ob.type = 'triangle'; ob.frequency.value = chord.bass[beat];
+    ob.connect(gb); gb.connect(bgGain);
+    gb.gain.setValueAtTime(0.9, audioCtx.currentTime);
+    gb.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.38);
+    ob.start(); ob.stop(audioCtx.currentTime + 0.4);
+    // Chord stab on beats 2 & 4 (classic jazz backbeat)
+    if (beat === 1 || beat === 3) {
+      chord.stab.forEach(f => {
+        const os = audioCtx.createOscillator(), gs = audioCtx.createGain();
+        os.type = 'sine'; os.frequency.value = f;
+        os.connect(gs); gs.connect(bgGain);
+        gs.gain.setValueAtTime(0.18, audioCtx.currentTime);
+        gs.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+        os.start(); os.stop(audioCtx.currentTime + 0.25);
+      });
+    }
+    bgStep++;
+    // Swing timing: long on downbeats, short on upbeats
+    bgTimer = setTimeout(scheduleBg, beat % 2 === 0 ? 310 : 200);
   }
-
-  bgStep++;
-  // Swing timing: long on downbeats, short on upbeats
-  bgTimer = setTimeout(scheduleBg, beat % 2 === 0 ? 310 : 200);
 }
 function stopBg() { clearTimeout(bgTimer); bgTimer = null; }
 function startBg() { if (!bgTimer && !muted && audioCtx) scheduleBg(); }
@@ -433,7 +460,7 @@ canvas.addEventListener('click', e => {
   if (showInterlude) {
     const el = Date.now() - interludeStart;
     if (el > (INTERLUDE.length - 1) * 1800 + 800 && hit(mx, my, W/2, 430, 160, 48)) {
-      showInterlude = false; currentLevel = 2; resetGame();
+      stopBg(); showInterlude = false; currentLevel = 2; resetGame();
     }
     return;
   }
@@ -481,7 +508,7 @@ function update() {
     if (keys['r'] || keys['R']) resetGame();
     if (won && (keys['k'] || keys['K'])) {
       if (currentLevel === 2) { won = false; currentLevel = 3; resetGame(); }
-      else { won = false; showInterlude = true; interludeStart = Date.now(); }
+      else { won = false; showInterlude = true; interludeStart = Date.now(); currentLevel = 2; startBg(); }
     }
     return;
   }

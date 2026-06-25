@@ -380,7 +380,7 @@ const clouds = Array.from({ length: 20 }, (_, i) => ({
   s: 0.7 + Math.abs(Math.sin(i * 1.13)) * 0.35,
 }));
 
-let player, cam, jumpsLeft, jumpConsumed, frameCount, won, deathFlash, lives, gameOver, invincible, needAllCoins, score, streak, timerFrames, timerLimit = 90, dust, dialogueIndex, talkingToNpc, paused, showMenu = true, godMode = false;
+let player, cam, jumpsLeft, jumpConsumed, frameCount, won, deathFlash, lives, gameOver, invincible, needAllCoins, score, streak, timerFrames, timerLimit = 90, dust, dialogueIndex, talkingToNpc, paused, showMenu = true, godMode = false, activeNpc3 = '';
 let showEnding = false, endingStart = 0, endingPhase = 'lines', endingFadeStart = 0, trophyStart = 0;
 
 const checkpoint = {wx: 1755, platY: 430, activated: false};
@@ -416,6 +416,24 @@ const DIALOGUE = [
   "You have 3 lives and only 90 seconds. No pressure...",
   "Every 5 coins in a row scores 300 instead of 100!",
   "Good luck out there. You'll need it. Press E to close.",
+];
+const NPC3A_X = 60, NPC3A_Y = 404 - PH;
+const DIALOGUE3A = [
+  "You weren't supposed to make it here.",
+  "No one ever does.",
+  "The one who waits at the end...",
+  "He's been expecting you.",
+  "He's always been expecting you.",
+  "Press E to close.",
+];
+const NPC3B_X = 2010, NPC3B_Y = 364 - PH;
+const DIALOGUE3B = [
+  "I've been here a long time.",
+  "Longer than I can remember.",
+  "We all have.",
+  "Keep running, Areg.",
+  "You'll understand when you get there.",
+  "Press E to close.",
 ];
 const NPC2_X = 110, NPC2_Y = PLATS2[0].y - PH;
 const DIALOGUE2 = [
@@ -489,6 +507,15 @@ window.addEventListener('keydown', e => {
     else if (talkingToNpc) {
       dialogueIndex++;
       if (dialogueIndex >= DIALOGUE2.length) { talkingToNpc = false; dialogueIndex = 0; }
+    }
+    } else if (currentLevel === 3) {
+    const nearA = Math.abs((player.x + PW/2) - NPC3A_X) < 80;
+    const nearB = Math.abs((player.x + PW/2) - NPC3B_X) < 80;
+    if ((nearA || nearB) && !talkingToNpc) { talkingToNpc = true; dialogueIndex = 0; activeNpc3 = nearA ? 'A' : 'B'; }
+    else if (talkingToNpc) {
+      dialogueIndex++;
+      const dlg = activeNpc3 === 'A' ? DIALOGUE3A : DIALOGUE3B;
+      if (dialogueIndex >= dlg.length) { talkingToNpc = false; dialogueIndex = 0; activeNpc3 = ''; }
     }
     }
   }
@@ -1315,6 +1342,47 @@ function drawNpc2() {
   ctx.restore();
 }
 
+function drawNpc3(npcX, npcY, headColor, dialogue, isActive) {
+  const nx = npcX - cam.x;
+  const ny = npcY + PH - 4;
+  const near = Math.abs((player.x + PW/2) - npcX) < 80;
+  if (near && !talkingToNpc) {
+    ctx.fillStyle = '#e0aaff'; ctx.font = '11px "Segoe Print",cursive'; ctx.textAlign = 'center';
+    ctx.fillText('Press E to talk', nx, ny - PH - 18);
+  }
+  if (talkingToNpc && isActive) {
+    const line = dialogue[dialogueIndex];
+    const bw = 280, bh = 60, bx = nx - bw/2, by = ny - PH - bh - 28;
+    ctx.fillStyle = '#1a0030'; ctx.strokeStyle = '#9b30ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(nx - 8, by + bh); ctx.lineTo(nx + 8, by + bh); ctx.lineTo(nx, by + bh + 12); ctx.closePath();
+    ctx.fillStyle = '#1a0030'; ctx.fill(); ctx.strokeStyle = '#9b30ff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#e0d0ff'; ctx.font = '11px "Segoe Print",cursive'; ctx.textAlign = 'center';
+    const words = line.split(' '), maxW = bw - 20;
+    let row = '', rows = [];
+    for (const w of words) {
+      const test = row ? row + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW) { rows.push(row); row = w; } else row = test;
+    }
+    rows.push(row);
+    rows.forEach((r, i) => ctx.fillText(r, nx, by + 22 + i * 16));
+    ctx.fillStyle = '#7b5fa8'; ctx.font = '9px sans-serif';
+    ctx.fillText(`${dialogueIndex + 1}/${dialogue.length}  — E to continue`, nx, by + bh - 6);
+  }
+  ctx.save(); ctx.translate(nx, ny);
+  ctx.strokeStyle = '#2a0040'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(-3,-22); ctx.lineTo(-7,0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(3,-22);  ctx.lineTo(7,0);  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,-22);  ctx.lineTo(0,-44); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-3,-40); ctx.lineTo(-16,-54); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(3,-40);  ctx.lineTo(16,-28); ctx.stroke();
+  ctx.fillStyle = headColor; ctx.strokeStyle = '#2a0040'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.arc(0,-56,11,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#2a0040';
+  ctx.beginPath(); ctx.arc(-3.8,-57.5,1.6,0,Math.PI*2); ctx.arc(3.8,-57.5,1.6,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
 function drawDust() {
   for (let i = dust.length - 1; i >= 0; i--) {
     const d = dust[i];
@@ -1808,6 +1876,7 @@ function loop() {
   drawBirds();
   if (currentLevel === 1) drawNpc();
   else if (currentLevel === 2) drawNpc2();
+  else if (currentLevel === 3) { drawNpc3(NPC3A_X, NPC3A_Y, '#3b006b', DIALOGUE3A, activeNpc3 === 'A'); drawNpc3(NPC3B_X, NPC3B_Y, '#888888', DIALOGUE3B, activeNpc3 === 'B'); }
   drawDust();
   drawFigure();
   drawHUD();

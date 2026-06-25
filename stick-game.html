@@ -279,6 +279,7 @@ const MOVINGPLATS1 = [
   {x: 3190, y: 270, w: 90, h: 16, vx: 0,   vy: 1.8, min: 215,  max: 350},
 ];
 const MOVINGPLATS2 = [];
+const MOVINGPLATS3 = [];
 let movingPlats = MOVINGPLATS1;
 
 // Spring pads: wx=world x center, y=platform surface y
@@ -360,7 +361,7 @@ function resetGame() {
   plats    = currentLevel === 3 ? PLATS3 : currentLevel === 2 ? PLATS2 : PLATS1;
   birds    = (currentLevel === 3 ? BIRD_DEFS3 : currentLevel === 2 ? BIRD_DEFS2 : BIRD_DEFS).map(([wx, y, spd, range]) => ({ wx, startWx: wx, y, spd, dir: 1, range }));
   spikes       = currentLevel === 3 ? SPIKES3 : currentLevel === 2 ? SPIKES2 : SPIKES1;
-  movingPlats  = currentLevel === 2 ? MOVINGPLATS2 : MOVINGPLATS1;
+  movingPlats  = currentLevel === 3 ? MOVINGPLATS3 : currentLevel === 2 ? MOVINGPLATS2 : MOVINGPLATS1;
   windZones= currentLevel === 2 ? WINDZONES2 : WINDZONES1;
   springs  = currentLevel === 3 ? SPRINGS3 : currentLevel === 2 ? SPRINGS2 : SPRINGS1;
   coins = plats.filter(p => p.type === 1 && !spikes.some(s => s.y === p.y && Math.abs(p.x + p.w / 2 - s.wx) <= s.w / 2)).map(p => ({ wx: p.x + p.w / 2, y: p.y - 28, collected: false }));

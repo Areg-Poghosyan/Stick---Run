@@ -226,10 +226,8 @@ const BIRD_DEFS = [
 const BIRD_DEFS2 = [
   [320,  230, 2.3, 90],  // section 1 staircase, between y=275 and y=200
   [740,  320, 2.5, 90],  // gap between section 1 rest and section 2
-  [870,  280, 2.7, 90],  // section 2 low start, above y=340
   [1050, 150, 2.6, 90],  // section 2 near peak y=100
   [1460, 155, 2.9, 90],  // section 3 opening
-  [1650, 115, 3.0, 90],  // section 3 near peak y=80
   [2160, 140, 2.8, 90],  // section 4 mid
   [2520, 140, 3.0, 90],  // section 4 near peak y=100
   [2930, 100, 3.1, 90],  // section 5 near peaks y=70
@@ -1478,18 +1476,27 @@ function drawInterlude() {
 
 function drawLevelComplete() {
   const sky = ctx.createLinearGradient(0,0,0,H);
-  sky.addColorStop(0,'#08082a'); sky.addColorStop(1,'#1a1a50');
+  if (currentLevel === 2) {
+    sky.addColorStop(0,'#020008'); sky.addColorStop(1,'#120020');
+  } else {
+    sky.addColorStop(0,'#08082a'); sky.addColorStop(1,'#1a1a50');
+  }
   ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = currentLevel === 2 ? 'rgba(200,150,255,0.35)' : '#fff';
   for (const s of menuStars) { ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); }
-  ctx.shadowColor='#fffde8'; ctx.shadowBlur=22;
-  ctx.fillStyle='#fffde8'; ctx.beginPath(); ctx.arc(730,72,28,0,Math.PI*2); ctx.fill();
+  if (currentLevel === 2) {
+    ctx.shadowColor='#9b30ff'; ctx.shadowBlur=22;
+    ctx.fillStyle='#3b006b'; ctx.beginPath(); ctx.arc(730,72,28,0,Math.PI*2); ctx.fill();
+  } else {
+    ctx.shadowColor='#fffde8'; ctx.shadowBlur=22;
+    ctx.fillStyle='#fffde8'; ctx.beginPath(); ctx.arc(730,72,28,0,Math.PI*2); ctx.fill();
+  }
   ctx.shadowBlur=0;
-  ctx.fillStyle='#122012';
+  ctx.fillStyle = currentLevel === 2 ? '#0d0020' : '#122012';
   ctx.beginPath(); ctx.moveTo(0,H); ctx.lineTo(0,330);
   ctx.quadraticCurveTo(180,240,360,330); ctx.quadraticCurveTo(540,410,720,340);
   ctx.quadraticCurveTo(820,290,900,350); ctx.lineTo(900,H); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#0c160c';
+  ctx.fillStyle = currentLevel === 2 ? '#070010' : '#0c160c';
   ctx.beginPath(); ctx.moveTo(0,H); ctx.lineTo(0,390);
   ctx.quadraticCurveTo(120,350,250,400); ctx.quadraticCurveTo(420,450,600,390);
   ctx.quadraticCurveTo(750,340,900,400); ctx.lineTo(900,H); ctx.closePath(); ctx.fill();

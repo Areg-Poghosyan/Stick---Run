@@ -303,7 +303,7 @@ const clouds = Array.from({ length: 20 }, (_, i) => ({
   s: 0.7 + Math.abs(Math.sin(i * 1.13)) * 0.35,
 }));
 
-let player, cam, jumpsLeft, jumpConsumed, frameCount, won, deathFlash, lives, gameOver, invincible, needAllCoins, score, streak, timerFrames, timerLimit = 90, dust, dialogueIndex, talkingToNpc, paused, showMenu = true;
+let player, cam, jumpsLeft, jumpConsumed, frameCount, won, deathFlash, lives, gameOver, invincible, needAllCoins, score, streak, timerFrames, timerLimit = 90, dust, dialogueIndex, talkingToNpc, paused, showMenu = true, godMode = false;
 
 const checkpoint = {wx: 1755, platY: 430, activated: false};
 let spawnX = 55, spawnY = plats[0].y - PH;
@@ -388,6 +388,7 @@ window.addEventListener('keydown', e => {
   if (showMenu && !showCustomize && !showLevelSelect) showMenu = false;
   initAudio(); startBg();
   // DEV CHEAT — remove before release
+  if (e.key === 'g' && e.ctrlKey) { godMode = !godMode; }
   if (e.key === '`' && !showMenu && !won && !gameOver) {
     won = true; stopBg(); playWin();
   }
@@ -488,7 +489,7 @@ function update() {
     b.wx += b.spd * b.dir;
     if (Math.abs(b.wx - b.startWx) > b.range) b.dir *= -1;
     // Bird collision
-    if (invincible === 0) {
+    if (!godMode && invincible === 0) {
       const bsx = b.wx - cam.x;
       const psx = player.x - cam.x;
       if (Math.abs(b.wx - (player.x + PW/2)) < 22 && Math.abs(b.y - (player.y + PH/2)) < 22) {
@@ -605,7 +606,7 @@ function update() {
 
   // Spikes
   const SPIKE_H = 14;
-  for (const s of spikes) {
+  if (!godMode) for (const s of spikes) {
     if (player.x + PW > s.wx - s.w/2 + 2 && player.x < s.wx + s.w/2 - 2 &&
         player.y + PH > s.y - SPIKE_H && player.y < s.y) {
       loseLife(); break;

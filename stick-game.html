@@ -381,7 +381,7 @@ const clouds = Array.from({ length: 20 }, (_, i) => ({
 }));
 
 let player, cam, jumpsLeft, jumpConsumed, frameCount, won, deathFlash, lives, gameOver, invincible, needAllCoins, score, streak, timerFrames, timerLimit = 90, dust, dialogueIndex, talkingToNpc, paused, showMenu = true, godMode = false;
-let showEnding = false, endingStart = 0, endingPhase = 'lines', endingFadeStart = 0;
+let showEnding = false, endingStart = 0, endingPhase = 'lines', endingFadeStart = 0, trophyStart = 0;
 
 const checkpoint = {wx: 1755, platY: 430, activated: false};
 let spawnX = 55, spawnY = plats[0].y - PH;
@@ -524,7 +524,7 @@ canvas.addEventListener('click', e => {
     return;
   }
   if (showEnding && endingPhase === 'buttons') {
-    if (hit(mx, my, W/2 - 140, 390, 200, 50)) { stopEndingBg(); showEnding = false; currentLevel = 1; resetGame(); startBg(); }
+    if (hit(mx, my, W/2 - 140, 390, 200, 50)) { stopEndingBg(); endingPhase = 'trophy'; trophyStart = Date.now(); }
     if (hit(mx, my, W/2 + 140, 390, 180, 50)) { endingPhase = 'walkaway'; endingFadeStart = Date.now(); stopBg(); }
     return;
   }
@@ -1642,6 +1642,22 @@ const ENDING_LINES = [
 ];
 const SCROLL_PX_PER_MS = 0.032;
 const LINE_SPACING = 46;
+const TROPHY_LINES = [
+  "You touched it.",
+  "Just like I did.",
+  "Just like we all did.",
+  "Do you feel it?",
+  "The world is already resetting.",
+  "The spikes are returning.",
+  "The birds are waking.",
+  "And somewhere...",
+  "A new Areg is opening his eyes.",
+  "He doesn't know yet.",
+  "But he will.",
+  "They always do.",
+];
+const TROPHY_LINE_DUR = 2500;
+const TROPHY_FLASH_DUR = 1800;
 
 function drawEnding() {
   // Level 3 purple/black background
@@ -1649,6 +1665,44 @@ function drawEnding() {
   sky.addColorStop(0, '#020008'); sky.addColorStop(1, '#120020');
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
   const now = Date.now();
+
+  if (endingPhase === 'trophy') {
+    const elapsed = now - trophyStart;
+    // White flash fades to black over TROPHY_FLASH_DUR
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    const flashAlpha = Math.max(0, 1 - elapsed / TROPHY_FLASH_DUR);
+    ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`; ctx.fillRect(0, 0, W, H);
+    const afterFlash = elapsed - TROPHY_FLASH_DUR;
+    if (afterFlash < 0) return;
+    // Lines appear one by one
+    const lineIdx = Math.floor(afterFlash / TROPHY_LINE_DUR);
+    const visible = Math.min(lineIdx + 1, TROPHY_LINES.length);
+    ctx.textAlign = 'center'; ctx.shadowColor = '#000'; ctx.shadowBlur = 10;
+    for (let i = 0; i < visible; i++) {
+      const age = afterFlash - i * TROPHY_LINE_DUR;
+      const alpha = Math.min(1, age / 600);
+      ctx.globalAlpha = alpha;
+      ctx.font = 'italic 22px "Segoe Print",cursive';
+      ctx.fillStyle = '#cccccc';
+      ctx.fillText(TROPHY_LINES[i], W/2, H/2 - (visible - 1 - i) * 34);
+    }
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    // After all lines + 2s pause, show "Welcome back." then auto-start level 1
+    const allDone = TROPHY_FLASH_DUR + TROPHY_LINES.length * TROPHY_LINE_DUR;
+    const afterAll = elapsed - allDone;
+    if (afterAll >= 0) {
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+      const wbAlpha = Math.min(1, afterAll / 800);
+      ctx.globalAlpha = wbAlpha;
+      ctx.textAlign = 'center'; ctx.font = 'bold 54px "Segoe Print",cursive';
+      ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#000'; ctx.shadowBlur = 14;
+      ctx.fillText('Welcome back.', W/2, H/2);
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      // Auto-start level 1 after 2s pause following "Welcome back." fully appearing
+      if (afterAll >= 2800) { showEnding = false; currentLevel = 1; resetGame(); startBg(); }
+    }
+    return;
+  }
 
   if (endingPhase === 'walkaway') {
     const t = Math.min(1, (now - endingFadeStart) / 1800);

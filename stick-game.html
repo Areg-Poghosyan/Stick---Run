@@ -232,7 +232,7 @@ const BIRD_DEFS2 = [
   [2520, 140, 3.0, 90],  // section 4 near peak y=100
   [2930, 100, 3.1, 90],  // section 5 near peaks y=70
 ];
-const BIRD_DEFS3 = [ [350, 200, 2.8, 80], [640, 150, 3.0, 80], [990, 230, 3.2, 80], [1290, 110, 3.1, 80], [1630, 130, 3.3, 80], [2050, 160, 3.2, 80], [2420, 110, 3.4, 80], [2800, 100, 3.5, 80], [3170, 80, 3.6, 80], ];
+const BIRD_DEFS3 = [ [350, 200, 2.8, 80], [640, 150, 3.0, 80], [1290, 110, 3.1, 80], [1630, 130, 3.3, 80], [2050, 160, 3.2, 80], [3170, 80, 3.6, 80], ];
 let birds = BIRD_DEFS.map(([wx, y, spd, range]) => ({ wx, startWx: wx, y, spd, dir: 1, range }));
 
 // Spikes: wx=world x center, y=platform surface y, w=cluster width
@@ -302,6 +302,7 @@ const clouds = Array.from({ length: 20 }, (_, i) => ({
 }));
 
 let player, cam, jumpsLeft, jumpConsumed, frameCount, won, deathFlash, lives, gameOver, invincible, needAllCoins, score, streak, timerFrames, timerLimit = 90, dust, dialogueIndex, talkingToNpc, paused, showMenu = true, godMode = false;
+let showEnding = false, endingStart = 0, endingPhase = 'lines', endingFadeStart = 0;
 
 const checkpoint = {wx: 1755, platY: 430, activated: false};
 let spawnX = 55, spawnY = plats[0].y - PH;
@@ -387,8 +388,9 @@ window.addEventListener('keydown', e => {
   initAudio(); startBg();
   // DEV CHEAT — remove before release
   if (e.key === 'g' && e.ctrlKey) { godMode = !godMode; }
-  if (e.key === '`' && !showMenu && !won && !gameOver) {
-    won = true; stopBg(); playWin();
+  if (e.key === '`' && !showMenu && !won && !gameOver && !showEnding) {
+    if (currentLevel === 3) { showEnding = true; endingStart = Date.now(); endingPhase = 'lines'; stopBg(); playWin(); }
+    else { won = true; stopBg(); playWin(); }
   }
   if ((e.key === 'p' || e.key === 'P') && !won && !gameOver) {
     paused = !paused;
@@ -442,6 +444,11 @@ canvas.addEventListener('click', e => {
     }
     return;
   }
+  if (showEnding && endingPhase === 'buttons') {
+    if (hit(mx, my, W/2 - 140, 390, 200, 50)) { showEnding = false; currentLevel = 1; resetGame(); startBg(); }
+    if (hit(mx, my, W/2 + 140, 390, 180, 50)) { endingPhase = 'walkaway'; endingFadeStart = Date.now(); }
+    return;
+  }
   if (showMenu) {
     if (hit(mx, my, W/2, 308, 160, 46)) { showLevelSelect = true; levelSelectStart = Date.now(); initAudio(); }
     if (hit(mx, my, W/2, 368, 220, 46)) showCustomize = true;
@@ -469,6 +476,7 @@ function update() {
     if (keys['m'] || keys['M']) { paused = false; resetGame(); showMenu = true; stopBg(); }
     return;
   }
+  if (showEnding) return;
   if (won || gameOver) {
     if (keys['r'] || keys['R']) resetGame();
     if (won && (keys['k'] || keys['K'])) {
@@ -551,7 +559,7 @@ function update() {
         }
       }
       if (p.type === 3) {
-        if (coins.every(c => c.collected)) { score += Math.max(0, 5000 - Math.floor(timerFrames/60)*50); won = true; stopBg(); playWin(); return; }
+        if (coins.every(c => c.collected)) { score += Math.max(0, 5000 - Math.floor(timerFrames/60)*50); if (currentLevel === 3) { showEnding = true; endingStart = Date.now(); endingPhase = 'lines'; stopBg(); playWin(); } else { won = true; stopBg(); playWin(); } return; }
         else { needAllCoins = 120; }
       }
     }
@@ -1508,6 +1516,86 @@ function drawLevelComplete() {
   ctx.shadowBlur=0;
 }
 
+const ENDING_LINES = [
+  "You made it.",
+  "Just like I did.",
+  "I was you once, Areg.",
+  "I reached the trophy.",
+  "And the moment I touched it...",
+  "The world disappeared.",
+  "So I rebuilt it.",
+  "Harder. Darker. More impossible.",
+  "Hoping you would fail.",
+  "But here you are.",
+  "Touch the trophy. And lose everything. Just like me.",
+  "Or walk away. And finally end the cycle.",
+];
+const LINE_DURATION = 2600;
+const LINE_FADE = 600;
+
+function drawEnding() {
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  const now = Date.now();
+
+  if (endingPhase === 'walkaway') {
+    const t = Math.min(1, (now - endingFadeStart) / 1800);
+    ctx.fillStyle = `rgba(0,0,0,${t})`; ctx.fillRect(0, 0, W, H);
+    if (t >= 1) {
+      ctx.textAlign = 'center'; ctx.font = 'italic 32px "Segoe Print",cursive';
+      ctx.fillStyle = '#ccc'; ctx.shadowColor = '#000'; ctx.shadowBlur = 8;
+      ctx.fillText('Made by Areg.', W/2, H/2);
+      ctx.shadowBlur = 0;
+    }
+    return;
+  }
+
+  const elapsed = now - endingStart;
+  const lineIdx = Math.floor(elapsed / LINE_DURATION);
+
+  if (lineIdx >= ENDING_LINES.length) {
+    endingPhase = 'buttons';
+  }
+
+  if (endingPhase === 'lines') {
+    const visibleUntil = Math.min(lineIdx, ENDING_LINES.length - 1);
+    for (let i = 0; i <= visibleUntil; i++) {
+      const lineStart = i * LINE_DURATION;
+      const age = elapsed - lineStart;
+      let alpha;
+      if (i < visibleUntil) {
+        // fade out older lines
+        const fadeOutAge = elapsed - lineStart - LINE_DURATION + LINE_FADE;
+        alpha = fadeOutAge > 0 ? Math.max(0, 1 - fadeOutAge / LINE_FADE) : 1;
+      } else {
+        alpha = Math.min(1, age / LINE_FADE);
+      }
+      if (alpha <= 0) continue;
+      const isLast = i === ENDING_LINES.length - 1;
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center';
+      ctx.font = (isLast ? 'bold ' : 'italic ') + (isLast ? '20px' : '22px') + ' "Segoe Print",cursive';
+      ctx.fillStyle = isLast ? '#e0aaff' : '#cccccc';
+      ctx.shadowColor = '#000'; ctx.shadowBlur = 10;
+      ctx.fillText(ENDING_LINES[i], W/2, H/2 - (visibleUntil - i) * 36 + (visibleUntil === ENDING_LINES.length - 1 ? -60 : 0));
+      ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
+    return;
+  }
+
+  // buttons phase
+  ctx.textAlign = 'center'; ctx.shadowColor = '#000'; ctx.shadowBlur = 10;
+  for (let i = 0; i < ENDING_LINES.length; i++) {
+    const isLast = i === ENDING_LINES.length - 1;
+    ctx.font = (isLast ? 'bold 20px' : 'italic 22px') + ' "Segoe Print",cursive';
+    ctx.fillStyle = isLast ? '#e0aaff' : 'rgba(180,180,180,0.35)';
+    ctx.fillText(ENDING_LINES[i], W/2, H/2 - (ENDING_LINES.length - 1 - i) * 36 - 60);
+  }
+  ctx.shadowBlur = 0;
+  menuBtn('Touch the trophy', W/2 - 140, 390, 200, 50);
+  menuBtn('Walk away', W/2 + 140, 390, 180, 50);
+}
+
 function drawOverlay(title, sub) {
   ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,W,H);
   ctx.textAlign='center'; ctx.shadowColor='#000'; ctx.shadowBlur=12;
@@ -1520,6 +1608,7 @@ function drawOverlay(title, sub) {
 
 function loop() {
   ctx.clearRect(0,0,W,H);
+  if (showEnding)      { drawEnding();           requestAnimationFrame(loop); return; }
   if (showCustomize)   { drawCustomizeScreen(); requestAnimationFrame(loop); return; }
   if (showInterlude)   { drawInterlude();       requestAnimationFrame(loop); return; }
   if (showLevelSelect) { drawLevelSelect();     requestAnimationFrame(loop); return; }

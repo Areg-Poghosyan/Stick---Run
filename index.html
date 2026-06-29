@@ -75,21 +75,23 @@
   #tRight { left: 104px; bottom: 0; }
   #tJump  { right: 24px; bottom: 0; }
   #tInteract { right: 104px; bottom: 0; }
+  #rotateMsg {
+    display: none;
+    position: fixed; inset: 0;
+    background: #111;
+    color: #fff;
+    font-family: 'Segoe Print','Comic Sans MS',cursive;
+    font-size: 1.4rem;
+    align-items: center; justify-content: center;
+    z-index: 9999;
+  }
   @media (orientation: portrait) {
-    body {
-      transform: rotate(90deg);
-      transform-origin: center center;
-      width: 100vh;
-      height: 100vw;
-      position: fixed;
-      top: calc((100vh - 100vw) / 2);
-      left: calc((100vw - 100vh) / 2);
-      overflow: hidden;
-    }
+    #rotateMsg { display: flex; }
   }
   </style>
 </head>
 <body>
+  <div id="rotateMsg">Please rotate your device 🔄</div>
   <div id="pauseBtn">⏸</div>
   <div id="touchControls">
     <div class="tBtn" id="tLeft">◀</div>

@@ -66,6 +66,7 @@ function tone(freq, dur, vol, type, startFreq, dest) {
 }
 
 function playJump()  { tone(600, 0.09, 0.18, 'sine', 280); }
+function playCheckpoint() { tone(880, 0.12, 0.15, 'sine'); setTimeout(() => tone(1320, 0.18, 0.13, 'sine'), 110); }
 function playLand()  { tone(55,  0.13, 0.28, 'sine', 110); }
 function playCoin()  { tone(1320, 0.18, 0.22, 'sine', 880); }
 function playDie()   { tone(150, 0.3, 0.25, 'sawtooth', 400); }
@@ -710,6 +711,7 @@ function update() {
 
   if (!checkpoint.activated && player.x + PW/2 > checkpoint.wx) {
     checkpoint.activated = true;
+    playCheckpoint();
     spawnX = checkpoint.wx - 20; spawnY = checkpoint.platY - PH;
   }
 
@@ -1213,9 +1215,9 @@ function drawHUD() {
   const barW = 200, barH = 11, barX = W/2 - barW/2, barY = 10;
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.roundRect(barX - 1, barY - 1, barW + 2, barH + 2, 5); ctx.fill();
-  ctx.fillStyle = currentLevel === 2 ? '#1e90ff' : '#FFD84D';
+  ctx.fillStyle = currentLevel === 3 ? '#9b30ff' : currentLevel === 2 ? '#1e90ff' : '#FFD84D';
   ctx.beginPath(); ctx.roundRect(barX, barY, barW * (pct / 100), barH, 4); ctx.fill();
-  ctx.strokeStyle = currentLevel === 2 ? '#004999' : '#b89000';
+  ctx.strokeStyle = currentLevel === 3 ? '#5a0096' : currentLevel === 2 ? '#004999' : '#b89000';
   ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.stroke();
   ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
   ctx.fillStyle = '#fff'; ctx.font = 'bold 11px "Segoe Print",cursive'; ctx.textAlign = 'center';

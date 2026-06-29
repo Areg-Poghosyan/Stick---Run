@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Stick &amp; Run</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,9 +29,55 @@
       border-radius: 4px; cursor: pointer; user-select: none; z-index: 10;
     }
     #muteBtn:hover { background: rgba(26,18,8,0.95); }
+  #touchControls {
+    display: none;
+    position: fixed; bottom: 24px; left: 0; right: 0;
+    pointer-events: none;
+    z-index: 100;
+  }
+  @media (pointer: coarse) {
+    #touchControls { display: block; }
+  }
+  .tBtn {
+    position: absolute;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    border: 2px solid rgba(255,255,255,0.35);
+    color: #fff;
+    font-size: 1.6rem;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: all;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  #tLeft  { left: 24px;  bottom: 0; }
+  #tRight { left: 104px; bottom: 0; }
+  #tJump  { right: 24px; bottom: 0; }
+  #rotateMsg {
+    display: none;
+    position: fixed; inset: 0;
+    background: #111;
+    color: #fff;
+    font-family: 'Segoe Print','Comic Sans MS',cursive;
+    font-size: 1.4rem;
+    text-align: center;
+    align-items: center; justify-content: center;
+    z-index: 9999;
+  }
+  @media (orientation: portrait) {
+    #rotateMsg { display: flex; }
+  }
   </style>
 </head>
 <body>
+  <div id="rotateMsg">Please rotate your device 🔄</div>
+  <div id="touchControls">
+    <div class="tBtn" id="tLeft">◀</div>
+    <div class="tBtn" id="tRight">▶</div>
+    <div class="tBtn" id="tJump">▲</div>
+  </div>
   <div id="wrap">
     <canvas id="c" width="900" height="500" tabindex="0"></canvas>
     <button id="muteBtn" onclick="toggleMute()">🔊 Mute</button>
@@ -39,6 +86,20 @@
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 canvas.focus();
+
+// ── Touch controls ─────────────────────────────────────────────────────────
+(function() {
+  function wire(id, key) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true;  }, { passive: false });
+    el.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; }, { passive: false });
+    el.addEventListener('touchcancel',e => { e.preventDefault(); keys[key] = false; }, { passive: false });
+  }
+  wire('tLeft',  'ArrowLeft');
+  wire('tRight', 'ArrowRight');
+  wire('tJump',  'ArrowUp');
+})();
 
 // ── Audio ──────────────────────────────────────────────────────────────────
 let audioCtx = null, muted = false, bgGain = null, bgTimer = null, bgStep = 0, bgLevelOverride = 0, wasInAir = false, shake = 0;

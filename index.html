@@ -86,16 +86,34 @@ canvas.focus();
 
 // ── Touch controls ─────────────────────────────────────────────────────────
 (function() {
-  function wire(id, key, onUp) {
+  function wire(id, key) {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true;  }, { passive: false });
-    el.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; if (onUp) onUp(); }, { passive: false });
-    el.addEventListener('touchcancel',e => { e.preventDefault(); keys[key] = false; if (onUp) onUp(); }, { passive: false });
+    el.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; }, { passive: false });
+    el.addEventListener('touchcancel',e => { e.preventDefault(); keys[key] = false; }, { passive: false });
   }
   wire('tLeft',  'ArrowLeft');
   wire('tRight', 'ArrowRight');
-  wire('tJump',  'ArrowUp', () => { jumpConsumed = false; });
+  // Jump needs special handling: clear jumpConsumed on press so each tap is a
+  // fresh attempt, and hold the key true for 2 frames so the game loop sees it.
+  const tJump = document.getElementById('tJump');
+  if (tJump) {
+    let jumpTimer = null;
+    function doJumpDown(e) {
+      e.preventDefault();
+      jumpConsumed = false;
+      keys['ArrowUp'] = true;
+      clearTimeout(jumpTimer);
+    }
+    function doJumpUp(e) {
+      e.preventDefault();
+      jumpTimer = setTimeout(() => { keys['ArrowUp'] = false; jumpConsumed = false; }, 34);
+    }
+    tJump.addEventListener('touchstart',  doJumpDown, { passive: false });
+    tJump.addEventListener('touchend',    doJumpUp,   { passive: false });
+    tJump.addEventListener('touchcancel', doJumpUp,   { passive: false });
+  }
 })();
 
 // ── Audio ──────────────────────────────────────────────────────────────────

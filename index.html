@@ -669,6 +669,11 @@ canvas.addEventListener('click', e => {
     return;
   }
   if (gameOver && hit(mx, my, W/2, H/2 + 80, 160, 46)) { resetGame(); return; }
+  if (won && hit(mx, my, W/2, H/2 + 86, 190, 46)) {
+    if (currentLevel === 2) { bgLevelOverride = 0; won = false; currentLevel = 3; resetGame(); }
+    else { won = false; showInterlude = true; interludeStart = Date.now(); currentLevel = 2; startBg(); }
+    return;
+  }
   if (showCustomize) { handleCustomizeClick(mx, my); return; }
   if (showInterlude) {
     const el = Date.now() - interludeStart;
@@ -699,6 +704,23 @@ canvas.addEventListener('click', e => {
     if (hit(mx, my, W/2, 368, 220, 46)) showCustomize = true;
   }
 });
+canvas.addEventListener('touchend', e => {
+  if (!showEnding) return;
+  const t = e.changedTouches[0];
+  const r = canvas.getBoundingClientRect();
+  const mx = (t.clientX - r.left) * (W / r.width);
+  const my = (t.clientY - r.top)  * (H / r.height);
+  if (showLore) { if (hit(mx, my, W/2, H - 35, 150, 44)) { showLore = false; } return; }
+  if (endingPhase === 'walkaway') {
+    const after = Date.now() - endingFadeStart - 1800;
+    if (after >= 11000 && hit(mx, my, W/2, H/2 + 130, 280, 46)) { showLore = true; loreScrollY = 0; }
+    return;
+  }
+  if (endingPhase === 'buttons') {
+    if (hit(mx, my, W/2 - 140, 390, 200, 50)) { stopEndingBg(); endingPhase = 'trophy'; trophyStart = Date.now(); }
+    if (hit(mx, my, W/2 + 140, 390, 180, 50)) { endingPhase = 'walkaway'; endingFadeStart = Date.now(); stopBg(); }
+  }
+}, { passive: true });
 
 function loseLife() {
   if (invincible > 0) return;
@@ -1808,6 +1830,7 @@ function drawLevelComplete() {
   ctx.fillStyle='#dde8ff'; ctx.font='22px "Segoe Print",cursive';
   ctx.fillText(currentLevel === 2 ? 'Press K to continue to Level 3.' : 'Press K to continue to Level 2.', W/2, H/2 + 28);
   ctx.shadowBlur=0;
+  if (navigator.maxTouchPoints > 0) menuBtn('Continue ▶', W/2, H/2 + 86, 190, 46);
 }
 
 // Each entry: [speaker, text]  speaker: 'G'=Guardian, 'V'=Villain, 'N'=narrator

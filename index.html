@@ -55,24 +55,21 @@
   #tLeft  { left: 24px;  bottom: 0; }
   #tRight { left: 104px; bottom: 0; }
   #tJump  { right: 24px; bottom: 0; }
-  #rotateMsg {
-    display: none;
-    position: fixed; inset: 0;
-    background: #111;
-    color: #fff;
-    font-family: 'Segoe Print','Comic Sans MS',cursive;
-    font-size: 1.4rem;
-    text-align: center;
-    align-items: center; justify-content: center;
-    z-index: 9999;
-  }
   @media (orientation: portrait) {
-    #rotateMsg { display: flex; }
+    body {
+      transform: rotate(90deg);
+      transform-origin: center center;
+      width: 100vh;
+      height: 100vw;
+      position: fixed;
+      top: calc((100vh - 100vw) / 2);
+      left: calc((100vw - 100vh) / 2);
+      overflow: hidden;
+    }
   }
   </style>
 </head>
 <body>
-  <div id="rotateMsg">Please rotate your device 🔄</div>
   <div id="touchControls">
     <div class="tBtn" id="tLeft">◀</div>
     <div class="tBtn" id="tRight">▶</div>
@@ -89,16 +86,16 @@ canvas.focus();
 
 // ── Touch controls ─────────────────────────────────────────────────────────
 (function() {
-  function wire(id, key) {
+  function wire(id, key, onUp) {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true;  }, { passive: false });
-    el.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; }, { passive: false });
-    el.addEventListener('touchcancel',e => { e.preventDefault(); keys[key] = false; }, { passive: false });
+    el.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; if (onUp) onUp(); }, { passive: false });
+    el.addEventListener('touchcancel',e => { e.preventDefault(); keys[key] = false; if (onUp) onUp(); }, { passive: false });
   }
   wire('tLeft',  'ArrowLeft');
   wire('tRight', 'ArrowRight');
-  wire('tJump',  'ArrowUp');
+  wire('tJump',  'ArrowUp', () => { jumpConsumed = false; });
 })();
 
 // ── Audio ──────────────────────────────────────────────────────────────────

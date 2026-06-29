@@ -383,6 +383,7 @@ const clouds = Array.from({ length: 20 }, (_, i) => ({
 
 let player, cam, jumpsLeft, jumpConsumed, frameCount, won, deathFlash, lives, gameOver, invincible, needAllCoins, score, streak, timerFrames, timerLimit = 90, dust, dialogueIndex, talkingToNpc, paused, showMenu = true, godMode = false, activeNpc3 = '';
 let showEnding = false, endingStart = 0, endingPhase = 'lines', endingFadeStart = 0, trophyStart = 0;
+let showLore = false, loreScrollY = 0;
 
 const checkpoint = {wx: 1755, platY: 430, activated: false};
 let spawnX = 55, spawnY = plats[0].y - PH;
@@ -479,8 +480,17 @@ function resetGame() {
 resetGame();
 
 const keys = {};
+window.addEventListener('wheel', e => {
+  if (showLore) { loreScrollY += e.deltaY * 0.8; e.preventDefault(); }
+}, { passive: false });
+
 window.addEventListener('keydown', e => {
   if ([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+  if (showLore) {
+    if (e.key === 'ArrowDown') loreScrollY += 40;
+    if (e.key === 'ArrowUp') loreScrollY -= 40;
+    return;
+  }
   keys[e.key] = true;
   if (showMenu && !showCustomize && !showLevelSelect) showMenu = false;
   initAudio(); startBg();
@@ -536,6 +546,7 @@ canvas.addEventListener('click', e => {
   const r = canvas.getBoundingClientRect();
   const mx = (e.clientX - r.left) * (W / r.width);
   const my = (e.clientY - r.top)  * (H / r.height);
+  if (showLore) { if (hit(mx, my, W/2, H - 35, 150, 44)) { showLore = false; } return; }
   if (showCustomize) { handleCustomizeClick(mx, my); return; }
   if (showInterlude) {
     const el = Date.now() - interludeStart;
@@ -549,6 +560,11 @@ canvas.addEventListener('click', e => {
     if (el > (STORY.length - 1) * 1800 + 800 && hit(mx, my, W/2, 435, 170, 48)) {
       showMenu = false; showLevelSelect = false; currentLevel = 1; startBg();
     }
+    return;
+  }
+  if (showEnding && endingPhase === 'walkaway') {
+    const after = Date.now() - endingFadeStart - 1800;
+    if (after >= 11000 && hit(mx, my, W/2, H/2 + 130, 280, 46)) { showLore = true; loreScrollY = 0; }
     return;
   }
   if (showEnding && endingPhase === 'buttons') {
@@ -1807,6 +1823,10 @@ function drawEnding() {
     ctx.fillText('Story & Ideas: Areg', W/2, H/2 + 40);
     ctx.fillText('Concept & Planning: Browser Claude', W/2, H/2 + 62);
     ctx.fillText('Development: Terminal Claude', W/2, H/2 + 84);
+    if (credAlpha >= 1) {
+      ctx.globalAlpha = 1;
+      menuBtn('📖 Read the full story', W / 2, H / 2 + 130, 280, 46);
+    }
     ctx.globalAlpha = 1; ctx.shadowBlur = 0;
     return;
   }
@@ -1852,6 +1872,60 @@ function drawEnding() {
   menuBtn('Walk away', W/2 + 140, 390, 180, 50);
 }
 
+const LORE_LINES = [
+  "The Truth",
+  "In the beginning, there was one Areg.",
+  "He built a world and ran through it.",
+  "He reached the trophy.",
+  "And the moment he touched it... the world reset.",
+  "He woke up at the beginning with no memory.",
+  "He ran again. Touched it again. Reset again. Forever.",
+  "Until he remembered. He became the Villain.",
+  "He rebuilt the world darker, harder — hoping the next version of himself would fail.",
+  "Or be strong enough to walk away.",
+  "The Guardian is another echo. Trapped between cycles. Neither villain nor hero.",
+  "You are the latest Areg. One of thousands.",
+  "But the first Areg — the original — was real.",
+  "He didn't live inside the game.",
+  "He built it.",
+  "His name is Areg Poghosyan. And he couldn't stop running either.",
+  "Every spike. Every bird. Every wind zone.",
+  "Was placed there by the one who started the cycle.",
+  "You just lived it.",
+  "If you touched the trophy — the cycle continues. As he always knew it would.",
+  "A new Areg is already waking up.",
+  "If you walked away — you did what he never could.",
+  "You finally stopped.",
+  "And for the first time in a thousand years...",
+  "The world is at peace."
+];
+const LORE_LINE_H = 44;
+const LORE_PADDING = 60;
+
+function drawLoreScreen() {
+  ctx.fillStyle = '#0a0010'; ctx.fillRect(0, 0, W, H);
+  const totalH = LORE_LINES.length * LORE_LINE_H + LORE_PADDING * 2;
+  const maxScroll = Math.max(0, totalH - (H - 70));
+  loreScrollY = Math.max(0, Math.min(loreScrollY, maxScroll));
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, W, H - 70); ctx.clip();
+  ctx.textAlign = 'center'; ctx.shadowColor = '#000'; ctx.shadowBlur = 8;
+  for (let i = 0; i < LORE_LINES.length; i++) {
+    const y = LORE_PADDING + i * LORE_LINE_H - loreScrollY;
+    if (y < -30 || y > H - 40) continue;
+    ctx.globalAlpha = 1;
+    if (i === 0) {
+      ctx.font = 'bold 28px "Segoe Print",cursive'; ctx.fillStyle = '#cc88ff';
+    } else {
+      ctx.font = '18px "Segoe Print",cursive'; ctx.fillStyle = '#dddddd';
+    }
+    ctx.fillText(LORE_LINES[i], W / 2, y);
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  ctx.restore();
+  menuBtn('← Back', W / 2, H - 35, 150, 44);
+}
+
 function drawOverlay(title, sub) {
   ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,W,H);
   ctx.textAlign='center'; ctx.shadowColor='#000'; ctx.shadowBlur=12;
@@ -1864,6 +1938,7 @@ function drawOverlay(title, sub) {
 
 function loop() {
   ctx.clearRect(0,0,W,H);
+  if (showLore)        { drawLoreScreen();        requestAnimationFrame(loop); return; }
   if (showEnding)      { drawEnding();           requestAnimationFrame(loop); return; }
   if (showCustomize)   { drawCustomizeScreen(); requestAnimationFrame(loop); return; }
   if (showInterlude)   { drawInterlude();       requestAnimationFrame(loop); return; }

@@ -56,6 +56,21 @@
     -webkit-user-select: none;
     touch-action: none;
   }
+  #pauseBtn {
+    display: none;
+    position: fixed; top: 44px; left: 10px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: #fff; font-size: 1.3rem;
+    align-items: center; justify-content: center;
+    pointer-events: all;
+    user-select: none; -webkit-user-select: none;
+    touch-action: none;
+    z-index: 100;
+  }
+  @media (pointer: coarse) { #pauseBtn { display: flex; } }
   #tLeft  { left: 24px;  bottom: 0; }
   #tRight { left: 104px; bottom: 0; }
   #tJump  { right: 24px; bottom: 0; }
@@ -75,6 +90,7 @@
   </style>
 </head>
 <body>
+  <div id="pauseBtn">⏸</div>
   <div id="touchControls">
     <div class="tBtn" id="tLeft">◀</div>
     <div class="tBtn" id="tRight">▶</div>
@@ -125,6 +141,16 @@ canvas.focus();
     tJump.addEventListener('touchstart',  doJumpDown, { passive: false });
     tJump.addEventListener('touchend',    doJumpUp,   { passive: false });
     tJump.addEventListener('touchcancel', doJumpUp,   { passive: false });
+  }
+  const pauseBtnEl = document.getElementById('pauseBtn');
+  if (pauseBtnEl) {
+    pauseBtnEl.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (!won && !gameOver && !showMenu && !showEnding) {
+        paused = !paused;
+        if (paused) stopBg(); else startBg();
+      }
+    }, { passive: false });
   }
 })();
 

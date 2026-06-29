@@ -59,6 +59,7 @@
   #tLeft  { left: 24px;  bottom: 0; }
   #tRight { left: 104px; bottom: 0; }
   #tJump  { right: 24px; bottom: 0; }
+  #tInteract { right: 104px; bottom: 0; }
   @media (orientation: portrait) {
     body {
       transform: rotate(90deg);
@@ -78,6 +79,7 @@
     <div class="tBtn" id="tLeft">◀</div>
     <div class="tBtn" id="tRight">▶</div>
     <div class="tBtn" id="tJump">▲</div>
+    <div class="tBtn" id="tInteract">E</div>
   </div>
   <div id="wrap">
     <canvas id="c" width="900" height="500" tabindex="0"></canvas>
@@ -99,6 +101,12 @@ canvas.focus();
   }
   wire('tLeft',  'ArrowLeft');
   wire('tRight', 'ArrowRight');
+  const tInteract = document.getElementById('tInteract');
+  if (tInteract) {
+    tInteract.addEventListener('touchstart', e => { e.preventDefault(); keys['e'] = true;  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); }, { passive: false });
+    tInteract.addEventListener('touchend',   e => { e.preventDefault(); keys['e'] = false; }, { passive: false });
+    tInteract.addEventListener('touchcancel',e => { e.preventDefault(); keys['e'] = false; }, { passive: false });
+  }
   // Jump needs special handling: clear jumpConsumed on press so each tap is a
   // fresh attempt, and hold the key true for 2 frames so the game loop sees it.
   const tJump = document.getElementById('tJump');
@@ -628,6 +636,13 @@ canvas.addEventListener('click', e => {
   const mx = (e.clientX - r.left) * (W / r.width);
   const my = (e.clientY - r.top)  * (H / r.height);
   if (showLore) { if (hit(mx, my, W/2, H - 35, 150, 44)) { showLore = false; } return; }
+  if (paused) {
+    if (hit(mx, my, W/2, H/2 + 0,   180, 46)) { paused = false; startBg(); }
+    if (hit(mx, my, W/2, H/2 + 58,  180, 46)) { paused = false; resetGame(); }
+    if (hit(mx, my, W/2, H/2 + 116, 180, 46)) { paused = false; resetGame(); showMenu = true; stopBg(); }
+    return;
+  }
+  if (gameOver && hit(mx, my, W/2, H/2 + 80, 160, 46)) { resetGame(); return; }
   if (showCustomize) { handleCustomizeClick(mx, my); return; }
   if (showInterlude) {
     const el = Date.now() - interludeStart;
@@ -1691,12 +1706,11 @@ function drawPauseMenu() {
   ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center'; ctx.shadowColor = '#000'; ctx.shadowBlur = 10;
   ctx.fillStyle = '#FFD84D'; ctx.font = 'bold 48px "Segoe Print",cursive';
-  ctx.fillText('PAUSED', W/2, H/2 - 28);
-  ctx.fillStyle = '#fff'; ctx.font = '22px "Segoe Print",cursive';
-  ctx.fillText('P — Resume',    W/2, H/2 + 18);
-  ctx.fillText('R — Restart',   W/2, H/2 + 50);
-  ctx.fillText('M — Main Menu', W/2, H/2 + 82);
+  ctx.fillText('PAUSED', W/2, H/2 - 60);
   ctx.shadowBlur = 0;
+  menuBtn('Resume',    W/2, H/2 + 0,  180, 46);
+  menuBtn('Restart',   W/2, H/2 + 58, 180, 46);
+  menuBtn('Main Menu', W/2, H/2 + 116, 180, 46);
 }
 
 function drawInterlude() {
@@ -2015,6 +2029,7 @@ function drawOverlay(title, sub) {
   ctx.fillStyle='#FFF'; ctx.font='21px "Segoe Print",cursive';
   ctx.fillText(sub, W/2, H/2+28);
   ctx.shadowBlur=0;
+  if (navigator.maxTouchPoints > 0) menuBtn('Restart', W/2, H/2 + 80, 160, 46);
 }
 
 function loop() {
